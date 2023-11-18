@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IOC OSINT Explorer</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+    <script>
+        // Function to extract and deduplicate IOCs from text
+        function extractAndDeduplicateIOCs(text) {
+            // Regular expressions for matching IOCs
+            var ipv4Regex = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
+            var domainRegex = /\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b/g;
+            var urlRegex = /(?:https?|ftp):\/\/[^\s/$.?#].[^\s]*\b/g;
+            var emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+            var hashRegex = /\b[A-Fa-f0-9]{32}\b|\b[A-Fa-f0-9]{40}\b|\b[A-Fa-f0-9]{64}\b/g;
+
+            // Extract IOCs using the regular expressions
+            var ipv4Addresses = deduplicate(text.match(ipv4Regex) || []);
+            var domains = deduplicate(text.match(domainRegex) || []);
+            var urls = deduplicate(text.match(urlRegex) || []);
+            var emails = deduplicate(text.match(emailRegex) || []);
+            var fileHashes = deduplicate(text.match(hashRegex) || []);
+
+            // Return the extracted and deduplicated IOCs as an object
+            return {
+                ipv4Addresses: ipv4Addresses,
+                domains: domains,
+                urls: urls,
+                emails: emails,
+                fileHashes: fileHashes
+            };
+        }
+
+        // Function to deduplicate an array
+        function deduplicate(array) {
+            return Array.from(new Set(array));
+        }
+
+        // Function to handle form submission
+        function handleSubmit() {
+            // Get the text from the textarea
+            var inputText = document.getElementById('textInput').value;
+
+            // Extract and deduplicate IOCs from the input text
+            var extractedIOCs = extractAndDeduplicateIOCs(inputText);
+
+            // Filter out false positive domains (ignoring case)
+            var filteredDomains = filterFileExtensions(extractedIOCs.domains);
+
+            // Display the extracted and deduplicated IOCs on the webpage
+            displayIOCs({ ...extractedIOCs, domains: filteredDomains });
+        }
+
+        // Function to filter out false positive domains based on known file extensions (ignoring case)
+        function filterFileExtensions(domains) {
+            // List of known file extensions (ignoring case)
+            var knownFileExtensions = ['.exe', '.dll', '.zip', '.rar', '.msi', '.js', '.doc', '.docx', '.pdf', 'txt', 'bat', 'tmp', 'yar', 'py'];
+
+            // Filter out domains containing known file extensions
+            return domains.filter(domain => {
+                return !knownFileExtensions.some(extension => domain.toLowerCase().endsWith(extension.toLowerCase()));
+            });
+        }
+
+        // Function to display extracted and deduplicated IOCs in a table
+        function displayIOCs(extractedIOCs) {
+            var table = document.createElement('table');
+
+            // Add headers to the table
+            var headers = [
+                'Type', 
+                'IOC', 
+                'URLScan', 
+                'VirusTotal', 
+                'BGP', 
+                'Whoxy', 
+                'GreyNoise', 
+                'Shodan', 
+                'Hatching',
+                'Censys',
+                'OTX',
+                'Epieos'
+            ];
+            var headerRow = table.insertRow();
+            headers.forEach(headerText => {
+                var header = document.createElement('th');
+                header.appendChild(document.createTextNode(headerText));
+                headerRow.appendChild(header);
+            });
+
+            // Add data rows to the table
+            addRowsToTable(table, 'IPv4 Addresses', extractedIOCs.ipv4Addresses, 'https://urlscan.io/ip/', '');
+            addRowsToTable(table, 'Domains', extractedIOCs.domains, 'https://urlscan.io/domain/', '');
+            addRowsToTable(table, 'URLs', extractedIOCs.urls, '', 'URLScan');
+            addRowsToTable(table, 'Email Addresses', extractedIOCs.emails, '', '');
+            addRowsToTable(table, 'File Hashes', extractedIOCs.fileHashes, '', 'VirusTotal');
+
+            // Display the table on the webpage
+            var resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            var section_header = document.createElement('h2')
+            section_header.innerText = 'Extracted Observables' 
+            resultDiv.appendChild(section_header)
+            resultDiv.appendChild(table);
+        }
+
+        // Function to add rows to the table
+        function addRowsToTable(table, type, iocs, urlScanBaseUrl, virusTotalText) {
+            iocs.forEach(ioc => {
+                var row = table.insertRow();
+                var cellType = row.insertCell(0);
+                var cellIOC = row.insertCell(1);
+                var cellURLScan = row.insertCell(2);
+                var cellVirusTotal = row.insertCell(3);
+                var cellBGP = row.insertCell(4)
+                var cellWhoxy = row.insertCell(5)
+                var cellGreynoise = row.insertCell(6)
+                var cellShodan = row.insertCell(7)
+                var cellHatching = row.insertCell(8)
+
+                cellType.appendChild(document.createTextNode(type));
+                cellIOC.innerHTML = ioc;
+                
+                // Add enrichment hyperlinks
+                switch (type) {
+                    case "IPv4 Addresses":
+                        cellURLScan.innerHTML = `<a href="${urlScanBaseUrl}${ioc}" target="_blank">URLScan</a>`;
+                        cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/ip-address/${ioc}" target="_blank">VirusTotal</a>`;
+                        cellBGP.innerHTML = `<a href="https://bgp.he.net/ip/${ioc}#_dnsrecords" target="_blank">BGP DNS</a>`;
+                        cellGreynoise.innerHTML = `<a href="https://viz.greynoise.io/ip/${ioc}" target="_blank">GreyNoise</a>`;
+                        cellShodan.innerHTML = `<a href="https://www.shodan.io/host/${ioc}" target="_blank">Shodan</a>`;
+                        cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
+                    case "Domains":
+                        cellURLScan.innerHTML = `<a href="${urlScanBaseUrl}${ioc}" target="_blank">URLScan</a>`;
+                        cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/domain/${ioc}" target="_blank">VirusTotal</a>`;
+                        cellWhoxy.innerHTML = `<a href="https://www.whoxy.com/${ioc}" target="_blank">Whoxy</a>`;
+                        cellBGP.innerHTML = `<a href="https://bgp.he.net/dns/${ioc}" target="_blank">BGP</a>`;
+                        cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
+                    case "File Hashes":
+                        cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/file/${ioc}" target="_blank">${virusTotalText}</a>`;
+                        cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
+                }
+            });
+        }
+    </script>
+</head>
+<body style="font-family: system-ui;">
+    <h1>IOC OSINT Explorer</h1>
+    <p style="font-style: italic;">A static HTML page for quick OSINT pivoting.</p>
+    <form onsubmit="handleSubmit(); return false;">
+        <label for="textInput">Enter text:</label>
+        <br>
+        <textarea id="textInput" rows="30" cols="200"></textarea>
+        <br>
+        <input type="submit" value="Extract IOCs">
+    </form>
+
+    <div id="result"></div>
+</body>
+</html>
