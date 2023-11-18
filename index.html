@@ -138,23 +138,22 @@
                 cellIOC.innerHTML = ioc;
                 
                 // Add enrichment hyperlinks
-                switch (type) {
-                    case "IPv4 Addresses":
-                        cellURLScan.innerHTML = `<a href="${urlScanBaseUrl}${ioc}" target="_blank">URLScan</a>`;
-                        cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/ip-address/${ioc}" target="_blank">VirusTotal</a>`;
-                        cellBGP.innerHTML = `<a href="https://bgp.he.net/ip/${ioc}#_dnsrecords" target="_blank">BGP DNS</a>`;
-                        cellGreynoise.innerHTML = `<a href="https://viz.greynoise.io/ip/${ioc}" target="_blank">GreyNoise</a>`;
-                        cellShodan.innerHTML = `<a href="https://www.shodan.io/host/${ioc}" target="_blank">Shodan</a>`;
-                        cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
-                    case "Domains":
+                if (type == "IPv4 Addresses") {
+                    cellURLScan.innerHTML = `<a href="${urlScanBaseUrl}${ioc}" target="_blank">URLScan</a>`;
+                    cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/ip-address/${ioc}" target="_blank">VirusTotal</a>`;
+                    cellBGP.innerHTML = `<a href="https://bgp.he.net/ip/${ioc}#_dnsrecords" target="_blank">BGP DNS</a>`;
+                    cellGreynoise.innerHTML = `<a href="https://viz.greynoise.io/ip/${ioc}" target="_blank">GreyNoise</a>`;
+                    cellShodan.innerHTML = `<a href="https://www.shodan.io/host/${ioc}" target="_blank">Shodan</a>`;
+                    cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
+                } else if (type == "Domains") {
                         cellURLScan.innerHTML = `<a href="${urlScanBaseUrl}${ioc}" target="_blank">URLScan</a>`;
                         cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/domain/${ioc}" target="_blank">VirusTotal</a>`;
                         cellWhoxy.innerHTML = `<a href="https://www.whoxy.com/${ioc}" target="_blank">Whoxy</a>`;
                         cellBGP.innerHTML = `<a href="https://bgp.he.net/dns/${ioc}" target="_blank">BGP</a>`;
                         cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
-                    case "File Hashes":
-                        cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/file/${ioc}" target="_blank">${virusTotalText}</a>`;
-                        cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
+                } else if (type == "File Hashes") {
+                    cellVirusTotal.innerHTML = `<a href="https://www.virustotal.com/gui/file/${ioc}" target="_blank">${virusTotalText}</a>`;
+                    cellHatching.innerHTML = `<a href="https://tria.ge/s?q=${ioc}" target="_blank">Hatching</a>`;
                 }
             });
         }
